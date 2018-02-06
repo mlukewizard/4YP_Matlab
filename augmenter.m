@@ -3,20 +3,22 @@ clear
 close all
 
 %Set read and write directories for the images
-binaryReadDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\PreAugmentation\goodInnerImagesBinaryLessBlack\';
-binaryWriteDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\256\PostAugmentation\augmentedInnerBinary\';
-dicomReadDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\PreAugmentation\innerDicomsLessBlack\';
-dicomWriteDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\256\PostAugmentation\augmentedInnerOriginals\';
+innerBinaryReadDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\PreAugmentation\innerBinary\';
+innerBinaryWriteDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\postAugmentation\innerAugmented\';
+outerBinaryReadDir = '';
+outerBinaryWriteDir = '';
+dicomReadDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\PreAugmentation\dicoms\';
+dicomWriteDir = 'C:\Users\Luke\Documents\sharedFolder\Images\39894NS\PreAugmentation\pngOriginals\';
 
-augmented = true;
+augmented = false;
 
-files = dir(binaryReadDir);
+files = dir(innerBinaryReadDir);
 averageTime = 0;
 
 counter = 0;
 tic
 
-augNum = 2;
+augNum = 1;
 for i = 1:augNum
     
     %contrast adjustment parameters
@@ -42,7 +44,7 @@ for i = 1:augNum
             imageNumber = char(splitted2(2));
             
             binaryFilename = file.name;
-            binaryFilepath = horzcat(binaryReadDir, binaryFilename);
+            binaryFilepath = horzcat(innerBinaryReadDir, binaryFilename);
             
             dicomFilename = horzcat('IMG00', imageNumber);
             dicomFilepath = horzcat(dicomReadDir, dicomFilename);
@@ -92,7 +94,7 @@ for i = 1:augNum
             binaryWritename = horzcat('Augment', sprintf('%03d',i) , 'Binary', sprintf('%03d',trueFileNum), 'PatientNS', '.png');
             originalWritename = horzcat('Augment', sprintf('%03d',i) , 'Original', sprintf('%03d',trueFileNum), 'PatientNS', '.png');
             imwrite(uint8dicomImage, horzcat(dicomWriteDir, originalWritename),'png');
-            imwrite(binaryImage, horzcat(binaryWriteDir, binaryWritename),'png');
+            imwrite(binaryImage, horzcat(innerBinaryWriteDir, binaryWritename),'png');
             counter = counter + 1;
         end
         averageTime = toc/counter;
