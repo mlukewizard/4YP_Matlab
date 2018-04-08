@@ -2,13 +2,16 @@ clc
 clear 
 close all
 
-dicomFiles = 'C:\Users\Luke\Downloads\Download+TP3+cases\21-27_processed\S1-27_axial\';
-imageSaveDir = 'C:\\Users\\Luke\\Downloads\\Download+TP3+cases\\minedImages\\';
+dicomFiles = 'C:\Users\Luke\Documents\sharedFolder\4YP\interObserver\randomSlices\AD\';
+imageSaveDir = 'C:\Users\Luke\Documents\sharedFolder\4YP\interObserver\randomSlices\AD\regent\';
+if (exist(imageSaveDir) == 0)
+    mkdir(imageSaveDir)
+end
 imageType = "inner";
 figure
 set(gcf,'Pointer','crosshair');
 
-files = orderfields(dir(dicomFiles));
+files = orderfields(dir(dicomFiles));   
 files = files(arrayfun(@(x) strlength(string(x.name)), files) > 3);
 
 for i = 1:length(files)
@@ -17,10 +20,11 @@ for i = 1:length(files)
     dicomFileNum = splittedWriteName(1);
     dicomFileNum = char(dicomFileNum);
     dicomFileNum = str2double(string(dicomFileNum(end-2:end)));
-    if dicomFileNum > 270
+    if dicomFileNum > 275
         disp("Segmenting Image " + string(dicomFileNum))
         dicomImage = mat2gray(dicomread(horzcat(dicomFiles, file.name)));
         imshow(dicomImage, 'Parent', gca)
+        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
         searchingForContour = true;
         xPoints = [];
         yPoints = [];
@@ -34,49 +38,23 @@ for i = 1:length(files)
                searchingForContour = false;
                imwrite(zeros(512), char(string(imageSaveDir) + string(splittedWriteName(1)) + imageType + ".png"));
                
-            % Automatic thresholding
+            
             elseif string(keyPressType) == "alt"
+                %Automatic thresholding
                 workingImage = dicomImage;
-                x = mouseClickPoint(1,1);
-                y = mouseClickPoint(1,2);
+                x = int16(mouseClickPoint(1,1));
+                y = int16(mouseClickPoint(1,2));
+
                 workingImage = imgaussfilt(workingImage, 1);
-                gradient = imgradient(workingImage);
-                gradient = imgaussfilt(gradient, 1);
-                gradient = medfilt2(gradient);
-                newGrad = zeros(512);
-                
-                %weighting pixel intensity by distance
-                for i1 = 1:512
-                    for j = 1:512
-                        distance = (j-x)^2 + (i1-y)^2;
-                        if distance < 10
-                            newGrad(i1,j) = 0;
-                        else
-                            newGrad(i1,j) = gradient(i1,j) / (0.1*(distance^0.4));
-                        end
-                    end
-                end
-                
-                gradient = medfilt2(gradient);
-                gradient = medfilt2(gradient);
-                gradient = im2bw(gradient, 0.1);
-                labels = bwlabel(imcomplement(gradient), 4);
+                gradient = im2bw(workingImage, workingImage(y,x)-0.04);
+                labels = bwlabel(gradient, 4);
                 labels(labels~=labels(int16(y),int16(x))) = 0;
                 labels = bwperim(labels);
-                
-                %Successively getting outer perimeter
-                for k = 1:3
-                    labels = bwperim(imcomplement(labels));
-                    se = strel('disk', 2, 0);
-                    labels = imclose(labels, se);
-                    labels = imclearborder(labels);
-                    labels = imfill(labels, 'holes');
-                    labels = bwperim(labels);
-                end
-                
+
                 [x, y, z] = find(labels);
                 clf
                 imshow(dicomImage)
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                 hold on
                 scatter(y,x, 1, '.')
                 waitforbuttonpress;
@@ -84,48 +62,23 @@ for i = 1:length(files)
                 mouseClickPoint = get(gca,'CurrentPoint');
                 if string(keyPressType) == "open" || string(keyPressType) == "extend"
                     imshow(dicomImage)
+                    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                 elseif string(keyPressType) == "alt"
                     %Doing the second threshold
                     workingImage = dicomImage;
-                    x2 = mouseClickPoint(1,1);
-                    y2 = mouseClickPoint(1,2);
-                    workingImage = imgaussfilt(workingImage, 1);
-                    gradient = imgradient(workingImage);
-                    gradient = imgaussfilt(gradient, 1);
-                    gradient = medfilt2(gradient);
-                    newGrad = zeros(512);
-
-                    %weighting pixel intensity by distance
-                    for i1 = 1:512
-                        for j = 1:512
-                            distance = (j-x2)^2 + (i1-y2)^2;
-                            if distance < 10
-                                newGrad(i1,j) = 0;
-                            else
-                                newGrad(i1,j) = gradient(i1,j) / (0.1*(distance^0.4));
-                            end
-                        end
-                    end
-
-                    gradient = medfilt2(gradient);
-                    gradient = medfilt2(gradient);
-                    gradient = im2bw(gradient, 0.1);
-                    labels2 = bwlabel(imcomplement(gradient), 4);
-                    labels2(labels2~=labels2(int16(y2),int16(x2))) = 0;
-                    labels2 = bwperim(labels2);
-
-                    %Successively getting outer perimeter
-                    for k = 1:3
-                        labels2 = bwperim(imcomplement(labels2));
-                        se = strel('disk', 2, 0);
-                        labels2 = imclose(labels2, se);
-                        labels2 = imclearborder(labels2);
-                        labels2 = imfill(labels2, 'holes');
-                        labels2 = bwperim(labels2);
-                    end
+                    x2 = int16(mouseClickPoint(1,1));
+                    y2 = int16(mouseClickPoint(1,2));
+                    
+                workingImage = imgaussfilt(workingImage, 1);
+                gradient = im2bw(workingImage, workingImage(y2,x2)-0.04);
+                labels2 = bwlabel(gradient, 4);
+                labels2(labels2~=labels2(int16(y2),int16(x2))) = 0;
+                labels2 = bwperim(labels2);
+                
                     [x2, y2, z2] = find(labels2);
                     clf
                     imshow(dicomImage)
+                    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                     hold on
                     scatter(y,x, 1, '.')
                     scatter(y2,x2, 1, '.')
@@ -133,6 +86,7 @@ for i = 1:length(files)
                     keyPressType = get(gcf,'SelectionType');
                     if string(keyPressType) == "open" || string(keyPressType) == "extend"
                         imshow(dicomImage)
+                        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                     else
                         searchingForContour = false;
                         imwrite(imfill(labels, 'holes') + imfill(labels2, 'holes'), char(string(imageSaveDir) + string(splittedWriteName(1)) + imageType + ".png"));
@@ -143,7 +97,7 @@ for i = 1:length(files)
                     imwrite(imfill(labels, 'holes'), char(string(imageSaveDir) + string(splittedWriteName(1)) + imageType + ".png"));
                 end
             %Youre plotting points
-            else
+            elseif string(keyPressType) ~= "extend"
                 plottingPoints = true;
                 iteration = 0;
                 while plottingPoints
@@ -162,6 +116,7 @@ for i = 1:length(files)
                     yPoints = [yPoints, y];
                     clf
                     imshow(dicomImage)
+                    set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                     hold on
                     scatter(xPoints, yPoints, '.')
                     if string(keyPressType) == "alt"
@@ -177,6 +132,7 @@ for i = 1:length(files)
                         if string(keyPressType) == "open" || string(keyPressType) == "extend"
                             plottingPoints = false;
                             imshow(dicomImage)
+                            set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                             xPoints = [];
                             yPoints = [];
                         elseif string(keyPressType) == "normal"
@@ -201,6 +157,7 @@ for i = 1:length(files)
                                 yPoints2 = [yPoints2, y2];
                                 clf
                                 imshow(dicomImage)
+                                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                                 hold on
                                 scatter(xPoints2, yPoints2, '.')
                                 if string(keyPressType) == "alt"
@@ -221,6 +178,7 @@ for i = 1:length(files)
                                     if string(keyPressType) == "open" || string(keyPressType) == "extend"
                                         plottingPoints = false;
                                         imshow(dicomImage)
+                                        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                                         xPoints = [];
                                         yPoints = [];
                                         xPoints2 = [];
@@ -230,6 +188,7 @@ for i = 1:length(files)
                                         searchingForContour = false;
                                         clf
                                         imshow(zeros(512))
+                                        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                                         hold on
                                         spcv = cscvn([[xPoints, xPoints(1)]; [yPoints, yPoints(1)]]);
                                         before = findall(gca);
@@ -247,6 +206,7 @@ for i = 1:length(files)
                                         
                                         clf
                                         imshow(zeros(512))
+                                        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                                         hold on
                                         spcv = cscvn([[xPoints2, xPoints2(1)]; [yPoints2, yPoints2(1)]]);
                                         before = findall(gca);
@@ -272,6 +232,7 @@ for i = 1:length(files)
                             searchingForContour = false;
                             clf
                             imshow(zeros(512))
+                            set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                             hold on
                             spcv = cscvn([[xPoints, xPoints(1)]; [yPoints, yPoints(1)]]);
                             before = findall(gca);
